@@ -7,12 +7,16 @@
 #![feature(rustc_private)]
 
 extern crate datafrog;
-extern crate rustc;
 extern crate rustc_hash;
 extern crate rustc_driver;
-extern crate syntax;
-extern crate syntax_pos;
+extern crate rustc_ast;
+extern crate rustc_span;
 extern crate rustc_data_structures;
+extern crate rustc_index;
+extern crate rustc_middle;
+extern crate rustc_mir;
+extern crate rustc_hir;
+extern crate rustc_target;
 
 pub mod configuration;
 pub mod mir_dumper;

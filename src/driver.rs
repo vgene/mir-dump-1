@@ -10,18 +10,18 @@ extern crate rustc_codegen_utils;
 extern crate rustc_driver;
 extern crate rustc_errors;
 extern crate rustc_metadata;
-extern crate syntax_pos;
-extern crate syntax;
+extern crate rustc_ast;
+extern crate rustc_span;
 
 mod driver_utils;
 
 use crate::driver_utils::run;
 use log::{debug, trace, info};
 use mir_dump::{configuration, mir_dumper};
-use rustc::session;
+use rustc_session;
 use rustc_codegen_utils::codegen_backend::CodegenBackend;
 use rustc_driver::{driver, getopts, Compilation, CompilerCalls, RustcDefaultCalls};
-use syntax::ast;
+use rustc_ast::ast;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -94,7 +94,7 @@ impl<'a> CompilerCalls<'a> for DumperCompilerCalls {
         ofile: &Option<PathBuf>,
     ) -> Compilation {
         if configuration::test() {
-            if let rustc::session::config::Input::File(ref path) = input {
+            if let rustc_session::config::Input::File(ref path) = input {
                 env::set_var("DUMP_TEST_FILE", path.to_str().unwrap());
             }
         }

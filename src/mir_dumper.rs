@@ -4,11 +4,13 @@
 
 use log::trace;
 use rustc_driver::driver;
-use rustc::hir::{self, intravisit};
-use rustc::mir;
-use rustc::ty::{self, TyCtxt};
-use syntax::ast;
-use syntax_pos::Span;
+use rustc_hir as hir;
+use rustc_hir::intravisit;
+use rustc_middle::hir::map::Map;
+use rustc_middle::mir;
+use rustc_middle::ty::{self, TyCtxt};
+use rustc_ast::ast;
+use rustc_span::Span;
 use std::cell;
 use std::fs::File;
 use std::io::{self, Write, BufWriter};
@@ -35,12 +37,15 @@ pub fn dump_info<'r, 'a: 'r, 'tcx: 'a>(state: &'r mut driver::CompileState<'a, '
     trace!("[dump_info] exit");
 }
 
-struct InfoPrinter<'a, 'tcx: 'a> {
-    pub tcx: TyCtxt<'a, 'tcx, 'tcx>,
+struct InfoPrinter<'tcx> {
+    pub tcx: TyCtxt<'tcx>,
 }
 
-impl<'a, 'tcx> intravisit::Visitor<'tcx> for InfoPrinter<'a, 'tcx> {
-    fn nested_visit_map<'this>(&'this mut self) -> intravisit::NestedVisitorMap<'this, 'tcx> {
+// clippy_lints/src/mut_mut.rs
+impl<'tcx> intravisit::Visitor<'tcx> for InfoPrinter<'tcx> {
+    type Map = Map<'tcx>;
+
+    fn nested_visit_map<'this>(&'this mut self) -> intravisit::NestedVisitorMap<Self::Map> {
         let map = self.tcx.hir();
         intravisit::NestedVisitorMap::All(map)
     }
@@ -98,9 +103,9 @@ impl<'a, 'tcx> intravisit::Visitor<'tcx> for InfoPrinter<'a, 'tcx> {
 }
 
 struct MirInfoPrinter<'a, 'tcx: 'a> {
-    pub def_path: hir::map::DefPath,
-    pub tcx: TyCtxt<'a, 'tcx, 'tcx>,
-    pub mir: &'a mir::Mir<'tcx>,
+    pub def_path: hir::definitions::DefPath,
+    pub tcx: TyCtxt<'tcx>,
+    pub mir: &'a mir::Body<'tcx>,
     pub graph: cell::RefCell<BufWriter<File>>,
     pub initialization: DefinitelyInitializedAnalysisResult<'tcx>,
     pub polonius_info: PoloniusInfo,
@@ -351,7 +356,7 @@ impl<'a, 'tcx> MirInfoPrinter<'a, 'tcx> {
     }
 
     fn visit_terminator(&self, bb: mir::BasicBlock, terminator: &mir::Terminator) -> Result<(),io::Error> {
-        use rustc::mir::TerminatorKind;
+        use mir::TerminatorKind;
         match terminator.kind {
             TerminatorKind::Goto { target } => {
                 write_edge!(self, bb, target);

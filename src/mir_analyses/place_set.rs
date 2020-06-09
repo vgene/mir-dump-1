@@ -3,10 +3,10 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use super::utils::{self, is_prefix};
-use rustc::mir;
+use rustc_middle::mir;
 use std::collections::HashSet;
 use std::mem;
-use rustc::ty::TyCtxt;
+use rustc_middle::ty::TyCtxt;
 
 /// A set of MIR places.
 ///
@@ -51,8 +51,8 @@ impl<'tcx> PlaceSet<'tcx> {
     pub fn insert<'a>(
         &mut self,
         place: &mir::Place<'tcx>,
-        mir: &mir::Mir<'tcx>,
-        tcx: TyCtxt<'a, 'tcx, 'tcx>,
+        mir: &mir::Body<'tcx>,
+        tcx: TyCtxt<'tcx>,
     ) {
         self.check_invariant();
         // First, check that the place is not already marked as
@@ -73,8 +73,8 @@ impl<'tcx> PlaceSet<'tcx> {
     pub fn remove<'a>(
         &mut self,
         place: &mir::Place<'tcx>,
-        mir: &mir::Mir<'tcx>,
-        tcx: TyCtxt<'a, 'tcx, 'tcx>,
+        mir: &mir::Body<'tcx>,
+        tcx: TyCtxt<'tcx>,
     ) {
         self.check_invariant();
         let mut places = Vec::new();

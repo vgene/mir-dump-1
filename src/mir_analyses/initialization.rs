@@ -16,10 +16,11 @@
 
 use csv::{ReaderBuilder, WriterBuilder};
 use log::trace;
-use rustc::{hir, mir};
+use rustc_middle::mir;
+use rustc_hir as hir;
 use std::env;
 use std::path::Path;
-use rustc::ty::TyCtxt;
+use rustc_middle::ty::TyCtxt;
 use super::place_set::PlaceSet;
 use super::common::{self, WorkItem};
 use serde_derive::{Serialize, Deserialize};
@@ -41,8 +42,8 @@ struct DefinitelyInitializedAnalysis<'a, 'tcx: 'a> {
     result: DefinitelyInitializedAnalysisResult<'tcx>,
     /// Work queue.
     queue: Vec<WorkItem>,
-    mir: &'a mir::Mir<'tcx>,
-    tcx: TyCtxt<'a, 'tcx, 'tcx>,
+    mir: &'a mir::Body<'tcx>,
+    tcx: TyCtxt<'tcx>,
     /// Should we intersect or union the incoming branches?
     ///
     /// We need first to compute the fix-point by using `Union` because
@@ -53,7 +54,7 @@ struct DefinitelyInitializedAnalysis<'a, 'tcx: 'a> {
 }
 
 impl<'a, 'tcx: 'a> DefinitelyInitializedAnalysis<'a, 'tcx> {
-    fn new(mir: &'a mir::Mir<'tcx>, tcx: TyCtxt<'a, 'tcx, 'tcx>) -> Self {
+    fn new(mir: &'a mir::Body<'tcx>, tcx: TyCtxt<'tcx>) -> Self {
         Self {
             result: DefinitelyInitializedAnalysisResult::new(),
             mir: mir,
@@ -347,9 +348,9 @@ impl<'a, 'tcx: 'a> DefinitelyInitializedAnalysis<'a, 'tcx> {
 /// Compute the which places are definitely initialized at each program
 /// point.
 pub fn compute_definitely_initialized<'a, 'tcx: 'a>(
-    mir: &'a mir::Mir<'tcx>,
-    tcx: TyCtxt<'a, 'tcx, 'tcx>,
-    def_path: hir::map::DefPath,
+    mir: &'a mir::Body<'tcx>,
+    tcx: TyCtxt<'tcx>,
+    def_path: hir::definitions::DefPath,
 ) -> DefinitelyInitializedAnalysisResult<'tcx> {
     let mut analysis = DefinitelyInitializedAnalysis::new(mir, tcx);
     analysis.initialize();
@@ -408,7 +409,7 @@ impl<'tcx> DefinitelyInitializedAnalysisResult<'tcx> {
         records
     }
     /// Compare the expected analysis results with the actual.
-    fn compare_with_expected(&self, def_path: hir::map::DefPath, test_file: String) {
+    fn compare_with_expected(&self, def_path: hir::definitions::DefPath, test_file: String) {
         trace!(
             "[enter] compare_definitely_initialized def_path={:?} test_file={}",
             def_path,

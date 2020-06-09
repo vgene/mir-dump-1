@@ -3,9 +3,9 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use log::debug;
-use rustc::hir::def_id::DefId;
-use rustc::mir;
-use rustc::ty;
+use rustc_hir::def_id::DefId;
+use rustc_middle::mir;
+use rustc_middle::ty;
 use std::collections::HashMap;
 use super::borrowck::{facts, regions};
 use polonius_engine::{Algorithm, Output, Atom};
@@ -29,7 +29,7 @@ pub struct PoloniusInfo {
 fn add_fake_facts<'a, 'tcx:'a>(
     all_facts: &mut facts::AllInputFacts,
     interner: &facts::Interner,
-    mir: &'a mir::Mir<'tcx>,
+    mir: &'a mir::Body<'tcx>,
     variable_regions: &HashMap<mir::Local, facts::Region>,
     call_magic_wands: &mut HashMap<facts::Loan, mir::Local>
 ) -> (Vec<facts::Loan>, Vec<facts::Loan>) {
@@ -109,7 +109,7 @@ fn add_fake_facts<'a, 'tcx:'a>(
 }
 
 impl PoloniusInfo {
-    pub fn new<'a, 'tcx: 'a>(tcx: ty::TyCtxt<'a, 'tcx, 'tcx>, def_id: DefId, mir: &'a mir::Mir<'tcx>) -> Self {
+    pub fn new<'a, 'tcx: 'a>(tcx: ty::TyCtxt<'tcx>, def_id: DefId, mir: &'a mir::Body<'tcx>) -> Self {
         // Read Polonius facts.
         let def_path = tcx.hir().def_path(def_id);
         let dir_path = PathBuf::from("nll-facts").join(def_path.to_filename_friendly_no_crate());
@@ -161,7 +161,7 @@ impl PoloniusInfo {
 }
 
 /// Check if the statement is assignment.
-fn is_assignment<'tcx>(mir: &mir::Mir<'tcx>,
+fn is_assignment<'tcx>(mir: &mir::Body<'tcx>,
                        location: mir::Location) -> bool {
     let mir::BasicBlockData { ref statements, .. } = mir[location.block];
     if statements.len() == location.statement_index {
@@ -173,7 +173,7 @@ fn is_assignment<'tcx>(mir: &mir::Mir<'tcx>,
     }
 }
 
-fn is_call<'tcx>(mir: &mir::Mir<'tcx>,
+fn is_call<'tcx>(mir: &mir::Body<'tcx>,
                  location: mir::Location) -> bool {
     let mir::BasicBlockData { ref statements, ref terminator, .. } = mir[location.block];
     if statements.len() != location.statement_index {
@@ -186,7 +186,7 @@ fn is_call<'tcx>(mir: &mir::Mir<'tcx>,
 }
 
 /// Extract the call terminator at the location. Otherwise return None.
-fn get_call_destination<'tcx>(mir: &mir::Mir<'tcx>,
+fn get_call_destination<'tcx>(mir: &mir::Body<'tcx>,
                               location: mir::Location) -> Option<mir::Place<'tcx>> {
     let mir::BasicBlockData { ref statements, ref terminator, .. } = mir[location.block];
     if statements.len() != location.statement_index {
