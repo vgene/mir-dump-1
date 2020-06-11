@@ -3,7 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use log::trace;
-use rustc_driver::driver;
+// use rustc_driver::driver;
 use rustc_hir as hir;
 use rustc_hir::intravisit;
 use rustc_middle::hir::map::Map;
@@ -23,14 +23,15 @@ use super::mir_analyses::initialization::{
 use crate::polonius_info::PoloniusInfo;
 use crate::configuration;
 
-pub fn dump_info<'r, 'a: 'r, 'tcx: 'a>(state: &'r mut driver::CompileState<'a, 'tcx>) {
+//pub fn dump_info<'r, 'a: 'r, 'tcx: 'a>(state: &'r mut driver::CompileState<'a, 'tcx>) {
+pub fn dump_info<'r, 'tcx: 'r>(tcx: &'r mut TyCtxt<'tcx>) {
     trace!("[dump_info] enter");
 
-    let tcx = state.tcx.unwrap();
+    // let tcx = state.tcx.unwrap();
 
-    assert!(tcx.use_mir_borrowck(), "NLL is not enabled.");
+    // assert!(tcx.use_mir_borrowck(), "NLL is not enabled.");
     let mut printer = InfoPrinter {
-        tcx: tcx,
+        tcx: *tcx,
     };
     intravisit::walk_crate(&mut printer, tcx.hir().krate());
 
@@ -51,7 +52,7 @@ impl<'tcx> intravisit::Visitor<'tcx> for InfoPrinter<'tcx> {
     }
 
     fn visit_fn(&mut self, fk: intravisit::FnKind<'tcx>, _fd: &'tcx hir::FnDecl,
-                _b: hir::BodyId, _s: Span, node_id: ast::NodeId) {
+                _b: hir::BodyId, _s: Span, node_id: hir::HirId) {
         let name = match fk {
             intravisit::FnKind::ItemFn(name, ..) => name,
             _ => return,
@@ -65,7 +66,7 @@ impl<'tcx> intravisit::Visitor<'tcx> for InfoPrinter<'tcx> {
 
         match configuration::dump_mir_proc() {
             Some(value) => {
-                if name != value {
+                if name.to_string() != value {
                     return;
                 }
             },
@@ -78,7 +79,8 @@ impl<'tcx> intravisit::Visitor<'tcx> for InfoPrinter<'tcx> {
         // Read Polonius facts.
         let def_path = self.tcx.hir().def_path(def_id);
 
-        let mir = self.tcx.mir_validated(def_id).borrow();
+        let (mir, _) = self.tcx.mir_validated(def_id);
+        let mir = mir.borrow();
 
         let graph_path = PathBuf::from("nll-facts")
             .join(def_path.to_filename_friendly_no_crate())
@@ -171,7 +173,9 @@ impl<'a, 'tcx> MirInfoPrinter<'a, 'tcx> {
             write_graph!(self, "<tr><td>VARIABLES</td></tr>");
             write_graph!(self, "<tr><td>Name</td><td>Temporary</td><td>Type</td><td>Region</td></tr>");
             for (temp, var) in self.mir.local_decls.iter_enumerated() {
-                let name = var.name.map(|s| s.to_string()).unwrap_or(String::from(""));
+                let name = String::from("");
+                // get the name out of VarDebugInfo
+                // let name = var.name.map(|s| s.to_string()).unwrap_or(String::from(""));
                 let region = self.polonius_info.variable_regions
                     .get(&temp)
                     .map(|region| format!("{:?}", region))
@@ -225,7 +229,8 @@ impl<'a, 'tcx> MirInfoPrinter<'a, 'tcx> {
                         box mir::Constant {
                             literal: ty::Const {
                                 ty: ty::TyS {
-                                    sty: ty::TyKind::FnDef (def_id, substs),
+                                    //sty: ty::TyKind::FnDef (def_id, substs),
+                                    kind: ty::FnDef (def_id, substs),
                                     ..
                                 },
                                 ..
@@ -399,11 +404,11 @@ impl<'a, 'tcx> MirInfoPrinter<'a, 'tcx> {
             }
             TerminatorKind::Yield { .. } => { unimplemented!() }
             TerminatorKind::GeneratorDrop => { unimplemented!() }
-            TerminatorKind::FalseEdges { ref real_target, ref imaginary_targets } => {
+            TerminatorKind::FalseEdges { ref real_target, ref imaginary_target } => {
                 write_edge!(self, bb, real_target);
-                for target in imaginary_targets {
-                    write_edge!(self, bb, imaginary target);
-                }
+                //for target in imaginary_target {
+                write_edge!(self, bb, imaginary imaginary_target);
+                //}
             }
             TerminatorKind::FalseUnwind { real_target, unwind } => {
                 write_edge!(self, bb, real_target);

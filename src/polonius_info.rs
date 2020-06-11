@@ -3,7 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use log::debug;
-use rustc_hir::def_id::DefId;
+use rustc_hir::def_id::LocalDefId;
 use rustc_middle::mir;
 use rustc_middle::ty;
 use std::collections::HashMap;
@@ -109,7 +109,7 @@ fn add_fake_facts<'a, 'tcx:'a>(
 }
 
 impl PoloniusInfo {
-    pub fn new<'a, 'tcx: 'a>(tcx: ty::TyCtxt<'tcx>, def_id: DefId, mir: &'a mir::Body<'tcx>) -> Self {
+    pub fn new<'a, 'tcx: 'a>(tcx: ty::TyCtxt<'tcx>, def_id: LocalDefId, mir: &'a mir::Body<'tcx>) -> Self {
         // Read Polonius facts.
         let def_path = tcx.hir().def_path(def_id);
         let dir_path = PathBuf::from("nll-facts").join(def_path.to_filename_friendly_no_crate());
