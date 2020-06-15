@@ -17,20 +17,31 @@ use rustc_target::abi::VariantIdx;
 /// +   `is_prefix(x.f.g, x.f) == true`
 /// +   `is_prefix(x.f, x.f.g) == false`
 pub fn is_prefix(place: &mir::Place, potential_prefix: &mir::Place) -> bool {
-    if place == potential_prefix {
-        true
-    } else {
-        match place {
-            // FIXME
-            mir::Place { .., projection: None, } => false,
-            mir::Place::Projection(box mir::Projection { base, .. }) => {
-                is_prefix(base, potential_prefix)
-            }
-            mir::Place::Promoted(_) => {
-                unimplemented!();
-            }
-        }
+    // base need to be the same
+    if place.local != potential_prefix.local{
+        false
     }
+
+    // base is the same, projection needs to be a prefix
+    // vec starts_with code
+    let n = potential_prefix.projection.to_iter().count();
+    place.projection.to_iter().count() >= n && 
+        place.projection.to_iter().take(n).eq(potential_prefix.projection.to_iter())
+
+    // if place == potential_prefix {
+    //     true
+    // } else {
+    //     match place {
+    //         // FIXME
+    //         mir::Place { .., projection: None, } => false,
+    //         mir::Place::Projection(box mir::Projection { base, .. }) => {
+    //             is_prefix(base, potential_prefix)
+    //         }
+    //         mir::Place::Promoted(_) => {
+    //             unimplemented!();
+    //         }
+    //     }
+    // }
 }
 
 /// Expands a place `x.f.g` of type struct into a vector of places for
