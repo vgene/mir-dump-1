@@ -5,10 +5,11 @@
 //! Various helper functions for working with `mir::Place`.
 
 use log::trace;
-use rustc_data_structures::indexed_vec::Idx;
-use rustc::mir;
-use rustc::ty::{self, TyCtxt};
+use rustc_index::vec::Idx;
+use rustc_middle::mir;
+use rustc_middle::ty::{self, TyCtxt};
 use std::collections::HashSet;
+use rustc_target::abi::VariantIdx;
 
 /// Check if the place `potential_prefix` is a prefix of `place`. For example:
 ///
@@ -16,20 +17,33 @@ use std::collections::HashSet;
 /// +   `is_prefix(x.f.g, x.f) == true`
 /// +   `is_prefix(x.f, x.f.g) == false`
 pub fn is_prefix(place: &mir::Place, potential_prefix: &mir::Place) -> bool {
-    if place == potential_prefix {
-        true
-    } else {
-        match place {
-            mir::Place::Local(_) |
-            mir::Place::Static(_) => false,
-            mir::Place::Projection(box mir::Projection { base, .. }) => {
-                is_prefix(base, potential_prefix)
-            }
-            mir::Place::Promoted(_) => {
-                unimplemented!();
-            }
-        }
+    // base need to be the same
+    if place.local != potential_prefix.local{
+        false
     }
+    else {
+
+    // base is the same, projection needs to be a prefix
+    // vec starts_with code
+    let n = potential_prefix.projection.iter().count();
+    place.projection.iter().count() >= n && 
+        place.projection.iter().take(n).eq(potential_prefix.projection.iter())
+    }
+
+    // if place == potential_prefix {
+    //     true
+    // } else {
+    //     match place {
+    //         // FIXME
+    //         mir::Place { .., projection: None, } => false,
+    //         mir::Place::Projection(box mir::Projection { base, .. }) => {
+    //             is_prefix(base, potential_prefix)
+    //         }
+    //         mir::Place::Promoted(_) => {
+    //             unimplemented!();
+    //         }
+    //     }
+    // }
 }
 
 /// Expands a place `x.f.g` of type struct into a vector of places for
@@ -38,14 +52,13 @@ pub fn is_prefix(place: &mir::Place, potential_prefix: &mir::Place) -> bool {
 /// vector.
 pub fn expand_struct_place<'a, 'tcx: 'a>(
     place: &mir::Place<'tcx>,
-    mir: &mir::Mir<'tcx>,
-    tcx: TyCtxt<'a, 'tcx, 'tcx>,
+    mir: &mir::Body<'tcx>,
+    tcx: TyCtxt<'tcx>,
     without_element: Option<usize>,
 ) -> Vec<mir::Place<'tcx>> {
     let mut places = Vec::new();
     match place.ty(mir, tcx) {
-        // mir::tcx::PlaceTy::Ty { ty: base_ty } => match base_ty.sty {
-        mir::tcx::PlaceTy::Ty { ty: base_ty } => match base_ty.kind {
+        mir::tcx::PlaceTy { ty: base_ty, .. } => match base_ty.kind {
             ty::Adt(def, substs) => {
                 assert!(
                     // def.variants.len() == 1,
@@ -100,7 +113,7 @@ pub fn expand_struct_place<'a, 'tcx: 'a>(
                 unimplemented!("ty={:?}", ty);
             },
         },
-        mir::tcx::PlaceTy::Downcast { .. } => {}
+        // mir::tcx::PlaceTy::Downcast { .. } => {}
     }
     places
 }
@@ -114,8 +127,8 @@ pub fn expand_struct_place<'a, 'tcx: 'a>(
 /// subtracting `{x.f.g.h}` from it, which results into `{x.g, x.h,
 /// x.f.f, x.f.h, x.f.g.f, x.f.g.g}`.
 pub fn expand<'a, 'tcx: 'a>(
-    mir: &mir::Mir<'tcx>,
-    tcx: TyCtxt<'a, 'tcx, 'tcx>,
+    mir: &mir::Body<'tcx>,
+    tcx: TyCtxt<'tcx>,
     minuend: &mir::Place<'tcx>,
     subtrahend: &mir::Place<'tcx>,
 ) -> Vec<mir::Place<'tcx>> {
@@ -131,8 +144,8 @@ pub fn expand<'a, 'tcx: 'a>(
     let mut place_set = Vec::new();
     fn expand_recursively<'a, 'tcx: 'a>(
         place_set: &mut Vec<mir::Place<'tcx>>,
-        mir: &mir::Mir<'tcx>,
-        tcx: TyCtxt<'a, 'tcx, 'tcx>,
+        mir: &mir::Body<'tcx>,
+        tcx: TyCtxt<'tcx>,
         minuend: &mir::Place<'tcx>,
         subtrahend: &mir::Place<'tcx>,
     ) {
@@ -177,8 +190,8 @@ pub fn expand<'a, 'tcx: 'a>(
 /// `guide_place`. This function is basically the reverse of
 /// `expand_struct_place`.
 pub fn collapse<'a, 'tcx: 'a>(
-    mir: &mir::Mir<'tcx>,
-    tcx: TyCtxt<'a, 'tcx, 'tcx>,
+    mir: &mir::Body<'tcx>,
+    tcx: TyCtxt<'tcx>,
     places: &mut HashSet<mir::Place<'tcx>>,
     guide_place: &mir::Place<'tcx>,
 ) {
