@@ -44,25 +44,39 @@ pub fn expand_struct_place<'a, 'tcx: 'a>(
 ) -> Vec<mir::Place<'tcx>> {
     let mut places = Vec::new();
     match place.ty(mir, tcx) {
-        mir::tcx::PlaceTy::Ty { ty: base_ty } => match base_ty.sty {
+        // mir::tcx::PlaceTy::Ty { ty: base_ty } => match base_ty.sty {
+        mir::tcx::PlaceTy::Ty { ty: base_ty } => match base_ty.kind {
             ty::Adt(def, substs) => {
                 assert!(
-                    def.variants.len() == 1,
+                    // def.variants.len() == 1,
+                    def.is_struct(),
                     "Only structs can be expanded. Got def={:?}.",
                     def
                 );
-                let variant_0 = ty::layout::VariantIdx::from_usize(0);
-                for (index, field_def) in def.variants[variant_0].fields.iter().enumerate() {
+                // let variant_0 = ty::layout::VariantIdx::from_usize(0);
+                let variant_def = def.non_enum_variant();
+
+                //for (index, field_def) in def.variants[variant_0].fields.iter().enumerate() {
+                for (index, field_def) in variant_def.fields.iter().enumerate() {
                     if Some(index) != without_element {
-                        let field = mir::Field::new(index);
-                        places.push(place.clone().field(field, field_def.ty(tcx, substs)));
+                        let field = mir::Field::new(index); //create an index
+                        let mut place = place.clone();
+                        let mut projection = place.projection.to_vec();
+                        projection.push(PlaceElem::Field(field, field_def.ty(tcx, substs)));
+                        places.push(place);
+
+                        //places.push(place.clone().field(field, field_def.ty(tcx, substs)));
                     }
                 }
             }
             ty::Tuple(slice) => for (index, ty) in slice.iter().enumerate() {
                 if Some(index) != without_element {
-                    let field = mir::Field::new(index);
-                    places.push(place.clone().field(field, ty));
+                    let field = mir::Field::new(index); //create an index
+                    let mut place = place.clone();
+                    let mut projection = place.projection.to_vec();
+                    projection.push(PlaceElem::Field(field, ty));
+                    places.push(place);
+                    //places.push(place.clone().field(field, ty));
                 }
             },
             ty::Ref(_region, _ty, _) => {
@@ -74,7 +88,11 @@ pub fn expand_struct_place<'a, 'tcx: 'a>(
                             "References have only a single “field”.");
                     }
                     None => {
-                        places.push(place.clone().deref());
+                        let mut place = place.clone();
+                        let mut projection = place.projection.to_vec();
+                        projection.push(PlaceElem::Deref);
+                        places.push(place);
+                        //places.push(place.clone().deref());
                     }
                 }
             },
