@@ -82,7 +82,7 @@ impl<'a, 'tcx: 'a> DefinitelyInitializedAnalysis<'a, 'tcx> {
         // Arguments are definitely initialized.
         let mut place_set = PlaceSet::new();
         for arg in self.mir.args_iter() {
-            self.set_place_initialised(&mut place_set, &mir::Place::Local(arg));
+            self.set_place_initialised(&mut place_set, &mir::Place::from(arg));
         }
         self.result.before_block.insert(mir::START_BLOCK, place_set);
     }
@@ -138,8 +138,9 @@ impl<'a, 'tcx: 'a> DefinitelyInitializedAnalysis<'a, 'tcx> {
         let statement = &self.mir[location.block].statements[location.statement_index];
         let mut place_set = self.get_place_set_before_statement(location);
         match statement.kind {
-            mir::StatementKind::Assign(ref target, ref source) => {
-                match source.as_ref() {
+            mir::StatementKind::Assign(box (ref target, ref source)) => {
+                match source {
+                // match source.as_ref() {
                     mir::Rvalue::Repeat(ref operand, _)
                     | mir::Rvalue::Cast(_, ref operand, _)
                     | mir::Rvalue::UnaryOp(_, ref operand)
@@ -222,7 +223,7 @@ impl<'a, 'tcx: 'a> DefinitelyInitializedAnalysis<'a, 'tcx> {
     fn merge_effects(&mut self, bb: mir::BasicBlock) {
         trace!("[enter] merge_effects bb={:?}", bb);
         let place_set = {
-            let sets = self.mir.predecessors_for(bb);
+            let sets = self.mir.predecessors()[bb];
             let sets = sets.iter();
             let mut sets = sets.map(|&predecessor| self.get_place_set_after_block(predecessor));
             if let Some(first) = sets.next() {

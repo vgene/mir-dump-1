@@ -21,12 +21,14 @@ pub fn is_prefix(place: &mir::Place, potential_prefix: &mir::Place) -> bool {
     if place.local != potential_prefix.local{
         false
     }
+    else {
 
     // base is the same, projection needs to be a prefix
     // vec starts_with code
-    let n = potential_prefix.projection.to_iter().count();
-    place.projection.to_iter().count() >= n && 
-        place.projection.to_iter().take(n).eq(potential_prefix.projection.to_iter())
+    let n = potential_prefix.projection.iter().count();
+    place.projection.iter().count() >= n && 
+        place.projection.iter().take(n).eq(potential_prefix.projection.iter())
+    }
 
     // if place == potential_prefix {
     //     true
@@ -56,7 +58,7 @@ pub fn expand_struct_place<'a, 'tcx: 'a>(
 ) -> Vec<mir::Place<'tcx>> {
     let mut places = Vec::new();
     match place.ty(mir, tcx) {
-        mir::tcx::PlaceTy::Ty { ty: base_ty } => match base_ty.sty {
+        mir::tcx::PlaceTy { ty: base_ty, .. } => match base_ty.kind {
             ty::Adt(def, substs) => {
                 assert!(
                     def.variants.len() == 1,
@@ -94,7 +96,7 @@ pub fn expand_struct_place<'a, 'tcx: 'a>(
                 unimplemented!("ty={:?}", ty);
             },
         },
-        mir::tcx::PlaceTy::Downcast { .. } => {}
+        // mir::tcx::PlaceTy::Downcast { .. } => {}
     }
     places
 }

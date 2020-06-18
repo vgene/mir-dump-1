@@ -71,8 +71,8 @@ fn add_fake_facts<'a, 'tcx:'a>(
                     for &(region1, region2) in regions.iter() {
                         debug!("{:?} {:?} {:?}", location, region1, region2);
                     }
-                    match place {
-                        mir::Place::Local(local) => {
+                    match place.as_local() {
+                        Some(local) => {
                             if let Some(var_region) = variable_regions.get(&local) {
                                 debug!("var_region = {:?} loan = {}", var_region, last_loan_id);
                                 let loan = facts::Loan::from(last_loan_id);
