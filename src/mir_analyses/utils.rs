@@ -6,7 +6,7 @@
 
 use log::trace;
 use rustc_index::vec::Idx;
-use rustc_middle::mir;
+use rustc_middle::mir::{self, PlaceElem};
 use rustc_middle::ty::{self, TyCtxt};
 use std::collections::HashSet;
 use rustc_target::abi::VariantIdx;
