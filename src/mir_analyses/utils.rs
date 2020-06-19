@@ -176,6 +176,9 @@ pub fn expand<'a, 'tcx: 'a>(
             subtrahend
         );
 
+        if minuend == subtrahend {
+            return;
+        }
         let mut places = expand_struct_place(minuend, mir, tcx, None);
 
         // find the field that contains subtrahend
@@ -189,7 +192,10 @@ pub fn expand<'a, 'tcx: 'a>(
 
                 place_set.extend(places);
             },
-            None => unreachable!(),
+            None => {
+                println!("{:?} {:?}", subtrahend, minuend);
+                unreachable!()
+            },
         }
     }
     // fn expand_recursively<'a, 'tcx: 'a>(

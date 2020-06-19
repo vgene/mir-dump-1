@@ -5,28 +5,30 @@
 #![feature(box_syntax)]
 #![feature(rustc_private)]
 
-extern crate rustc;
-extern crate rustc_codegen_utils;
 extern crate rustc_driver;
 extern crate rustc_errors;
 extern crate rustc_metadata;
 extern crate rustc_ast;
 extern crate rustc_span;
+extern crate rustc_interface;
 
-mod driver_utils;
+use std::io::{self, Write};
 
-use crate::driver_utils::run;
+//mod driver_utils;
+
+//use crate::driver_utils::run;
 use log::{debug, trace, info};
 use mir_dump::{configuration, mir_dumper};
-use rustc_session;
-use rustc_codegen_utils::codegen_backend::CodegenBackend;
-use rustc_driver::{driver, getopts, Compilation, CompilerCalls, RustcDefaultCalls};
+//use rustc_session;
+use rustc_driver::{Compilation};
+// use rustc_driver::{driver, getopts, Compilation, CompilerCalls, RustcDefaultCalls};
 use rustc_ast::ast;
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Instant;
 use rustc_interface::interface;
+use rustc_interface::Queries;
 
 pub fn current_sysroot() -> Option<String> {
     option_env!("SYSROOT")
@@ -49,17 +51,20 @@ pub fn current_sysroot() -> Option<String> {
 }
 
 struct DumperCallbacks;
-impl<'tcx> rustc_driver::Callbacks<'tcx> for DumperCallbacks {
-    fn after_analysis(&mut self, comiler: &interface::Compiler, queries: &'tcx interface::Queries<'tcx>)
+impl rustc_driver::Callbacks for DumperCallbacks {
+    fn after_analysis<'tcx>(&mut self, compiler: &interface::Compiler, queries: &'tcx Queries<'tcx>)
         -> rustc_driver::Compilation {
+            println!("Enter queries");
+            io::stdout().flush().unwrap();
+
             queries.global_ctxt().unwrap().take().enter(|tcx| {
                 // Call the verifier.
                 if configuration::dump_mir_info() {
-                    mir_dumper::dump_info(state);
+                    mir_dumper::dump_info(&mut tcx.clone());
                 }
-            }
+            });
 
-            rustc_driver::Compilation::Continue;
+            rustc_driver::Compilation::Continue
         }
 
 }
@@ -214,7 +219,7 @@ pub fn main() {
         let mut compiler_calls = DumperCallbacks;
 
         debug!("rustc command: '{}'", args.join(" "));
-        rustc_driver::run_compiler(&args, compiler_calls, None, None)
+        rustc_driver::run_compiler(&args, &mut compiler_calls, None, None)
     });
     std::process::exit(exit_status as i32);
 

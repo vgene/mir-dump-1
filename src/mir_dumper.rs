@@ -308,24 +308,24 @@ impl<'a, 'tcx> MirInfoPrinter<'a, 'tcx> {
         write_graph!(self, "<td>{}</td>", to_sorted_string!(borrow_regions));
 
         // Regions alive at this program point.
-        let regions: Vec<_> = self.polonius_info.borrowck_in_facts
-            .region_live_at
-            .iter()
-            .filter(|(_, point)| *point == start_point)
-            .cloned()
-            // TODO: Understand why we cannot unwrap here:
-            .map(|(region, _)| (region, self.polonius_info.find_variable(region)))
-            .collect();
-        write_graph!(self, "<td>{}</td>", to_sorted_string!(regions));
-        let regions: Vec<_> = self.polonius_info.borrowck_in_facts
-            .region_live_at
-            .iter()
-            .filter(|(_, point)| *point == mid_point)
-            .cloned()
-            // TODO: Understand why we cannot unwrap here:
-            .map(|(region, _)| (region, self.polonius_info.find_variable(region)))
-            .collect();
-        write_graph!(self, "<td>{}</td>", to_sorted_string!(regions));
+        // let regions: Vec<_> = self.polonius_info.borrowck_in_facts
+        //     .region_live_at
+        //     .iter()
+        //     .filter(|(_, point)| *point == start_point)
+        //     .cloned()
+        //     // TODO: Understand why we cannot unwrap here:
+        //     .map(|(region, _)| (region, self.polonius_info.find_variable(region)))
+        //     .collect();
+        // write_graph!(self, "<td>{}</td>", to_sorted_string!(regions));
+        // let regions: Vec<_> = self.polonius_info.borrowck_in_facts
+        //     .region_live_at
+        //     .iter()
+        //     .filter(|(_, point)| *point == mid_point)
+        //     .cloned()
+        //     // TODO: Understand why we cannot unwrap here:
+        //     .map(|(region, _)| (region, self.polonius_info.find_variable(region)))
+        //     .collect();
+        // write_graph!(self, "<td>{}</td>", to_sorted_string!(regions));
 
         write_graph!(self, "<td>{}</td>",
                      self.get_definitely_initialized_after_statement(location));
@@ -416,6 +416,7 @@ impl<'a, 'tcx> MirInfoPrinter<'a, 'tcx> {
                     write_edge!(self, bb, imaginary target);
                 }
             }
+            TerminatorKind::InlineAsm { .. } => { unimplemented!() }
         };
         Ok(())
     }

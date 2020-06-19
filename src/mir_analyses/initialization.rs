@@ -223,7 +223,7 @@ impl<'a, 'tcx: 'a> DefinitelyInitializedAnalysis<'a, 'tcx> {
     fn merge_effects(&mut self, bb: mir::BasicBlock) {
         trace!("[enter] merge_effects bb={:?}", bb);
         let place_set = {
-            let sets = self.mir.predecessors()[bb];
+            let sets = self.mir.predecessors()[bb].clone();
             let sets = sets.iter();
             let mut sets = sets.map(|&predecessor| self.get_place_set_after_block(predecessor));
             if let Some(first) = sets.next() {

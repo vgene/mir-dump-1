@@ -25,6 +25,8 @@ static MIR_DUMP_BUG_REPORT_URL: &str = "https://github.com/vakaras/mir-dump";
 ///
 /// The diagnostic emitter yielded to the procedure should be used for reporting
 /// errors of the compiler.
+
+/*
 fn monitor<F: FnOnce() + Send + 'static>(f: F) {
     let result = in_rustc_thread(move || {
         f()
@@ -108,3 +110,4 @@ pub fn run<F>(run_compiler: F) -> isize
     });
     0
 }
+*/

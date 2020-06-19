@@ -299,8 +299,9 @@ impl FactLoader {
         let facts = load_facts::<(String, String, String), _>(&mut self.interner, facts_dir, "outlives");
         self.facts.outlives.extend(facts);
 
-        let facts = load_facts::<(String, String), _>(&mut self.interner, facts_dir, "region_live_at");
-        self.facts.region_live_at.extend(facts);
+        // FIXME: reenable region_live_at
+        // let facts = load_facts::<(String, String), _>(&mut self.interner, facts_dir, "region_live_at");
+        // self.facts.region_live_at.extend(facts);
 
         let facts = load_facts::<(String, String), _>(&mut self.interner, facts_dir, "invalidates");
         self.facts.invalidates.extend(facts);
