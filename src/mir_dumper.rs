@@ -173,7 +173,7 @@ impl<'a, 'tcx> MirInfoPrinter<'a, 'tcx> {
             write_graph!(self, "<tr><td>VARIABLES</td></tr>");
             write_graph!(self, "<tr><td>Name</td><td>Temporary</td><td>Type</td><td>Region</td></tr>");
             for (temp, var) in self.mir.local_decls.iter_enumerated() {
-                let name = String::from("");
+                let name = String::from(""); // FIXME
                 // get the name out of VarDebugInfo
                 // let name = var.name.map(|s| s.to_string()).unwrap_or(String::from(""));
                 let region = self.polonius_info.variable_regions
